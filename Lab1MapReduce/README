@@ -1,0 +1,22 @@
+README
+
+This lab is to build a MapReduce system. The lab implements a worker process that calls application Map and Reduce functions and handles reading and writing files, and a master process that hands out tasks to workers and copes with failed workers.
+
+Part one.
+In this part, I implement the worker process that calls master for assigning task. And master should assign eigher Map task or Reduce task to the worker based on the status of the current MapReduce progress.
+Note: master can only assign reduce task to worker when all the map task have been finished.
+
+Part two.
+In this part, I add wait and exit task besides map and reduce task.
+The wait task is used to tell worker to wait for next task. This will happen when all the map tasks are assigned to workers but not finished yet. The current worker should call master periodically to get next reduce task.
+The exit task is used to tell worker to exit so it will not wait for new tasks and can finish its cycle. This will happen when there is no more unassigned task.
+
+Part three.
+In this part, I focus on dealing with worker crash.
+In the requirement, worker should finish its task in 10 seconds. Master should be able to assign a task to other workers if the current worker did not finish in 10 seconds. This is to handle worker crash or slower worker issue.
+Master should assign worker id to a new worker when it join first time. Each time a worker is asking master for a task, it will provide its worker id. So master can know which task is assigned to which worker.
+Worker will call master each time when it finish its current task. If the task was not assignd to other worker, master will mark this task as done.
+I start a new goroutine as 10s timer when assigned a new task to a worker. it will check if current worker finish its task in 10s. If not, master will assign this task to a new worker and use exit task to shut down this slow worker.
+Note: in my test on local machine, 10s is too short for a worker to finish some map task. This will cause all large map task to be assigned to other worker and current worker will be forced to quit. Since all workers cannot finish this map task in 10s, this will cause all workers to quit and the test will not finish. So I increase the timer to 12s.
+
+sync.mutex is used in master since multiple workers can talk to master and cause master's data to change at the same time.
