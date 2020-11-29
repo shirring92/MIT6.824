@@ -1,0 +1,11 @@
+README
+
+This lab is to build a fault-tolerant storage system. It implements Raft, a replicated state machine protocol.
+
+A replicated service achieves fault tolerance by storing complete copies of its state (i.e., data) on multiple replica servers. Replication allows the service to continue operating even if some of its servers experience failures (crashes or a broken or flaky network). The challenge is that failures may cause the replicas to hold differing copies of the data.
+
+Raft organizes client requests into a sequence, called the log, and ensures that all the replica servers see the same log. Each replica executes client requests in log order, applying them to its local copy of the service's state. Since all the live replicas see the same log contents, they all execute the same requests in the same order, and thus continue to have identical service state. If a server fails but later recovers, Raft takes care of bringing its log up to date. Raft will continue to operate as long as at least a majority of the servers are alive and can talk to each other. If there is no such majority, Raft will make no progress, but will pick up where it left off as soon as a majority can communicate again.
+
+This lab implements Raft as a Go object type with associated methods, meant to be used as a module in a larger service. A set of Raft instances talk to each other with RPC to maintain replicated logs. The Raft interface will support an indefinite sequences of numbered commands, also called log entries. The entries are numbered with index numbers. The log entry with a given index will eventually be committed. At that point, Raft should send the log entry to the larger service for it to execute.
+
+The design is an implementation of the paper "In Search of an Understandable Consensus Algorithm (Extended Version)" written by Diego Ongaro and John Ousterhout from Stanford University. The design includes saving persistent state and reading it after a node fails and then restarts. It does not implement cluster membership changes (Section 6 of the paper). Log compaction / snapshotting (Section 7 of the paper) is not included in this lab.
