@@ -203,16 +203,16 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 
 	reply.Term = rf.currentTerm
 	if args.Term < rf.currentTerm || rf.state != Follower {
-		DPrintf(" %d on state %v refuse vote to %d", rf.me, rf.state, args.CandidateId)
+		// DPrintf(" %d on state %v refuse vote to %d", rf.me, rf.state, args.CandidateId)
 		reply.VoteGranted = false
 	} else if (rf.votedFor == -1 || rf.votedFor == args.CandidateId) && (args.Term > rf.currentTerm) && uptodate {
 		reply.VoteGranted = true
 		rf.votedFor = args.CandidateId
-		DPrintf(" %d give vote to %d", rf.me, args.CandidateId)
+		// DPrintf(" %d give vote to %d", rf.me, args.CandidateId)
 		go rf.receiveHeartbeat(args.CandidateId) // reset election timer
 	} else {
-		DPrintf(" %d on state %d, term %d, votedfor %d, refuse vote to %d", rf.me, rf.state, rf.currentTerm, rf.votedFor, args.CandidateId)
-		DPrintf(" lastindex %d, lastterm %d, requestor %d lastindex %d, lastterm %d", lastindex, lastterm, args.CandidateId, args.LastLogIndex, args.LastLogTerm)
+		// DPrintf(" %d on state %d, term %d, votedfor %d, refuse vote to %d", rf.me, rf.state, rf.currentTerm, rf.votedFor, args.CandidateId)
+		// DPrintf(" lastindex %d, lastterm %d, requestor %d lastindex %d, lastterm %d", lastindex, lastterm, args.CandidateId, args.LastLogIndex, args.LastLogTerm)
 		reply.VoteGranted = false
 	}
 	rf.mu.Unlock()
@@ -295,7 +295,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 	
 	if args.Term < rf.currentTerm {
 		reply.Success = false
-		DPrintf(" %d got AE RPC request from %d of term %d, but is on term %d", rf.me, args.LeaderId, args.Term, rf.currentTerm)
+		// DPrintf(" %d got AE RPC request from %d of term %d, but is on term %d", rf.me, args.LeaderId, args.Term, rf.currentTerm)
 	} else if len(rf.log) <= args.PrevLogIndex || rf.log[args.PrevLogIndex].Term != args.PrevLogTerm { // log inconsistency
 		if len(rf.log) <= args.PrevLogIndex {
 			reply.PrevIndex = len(rf.log) - 1
@@ -312,8 +312,8 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 			reply.PrevIndex = i
 			reply.PrevTerm = rf.log[i].Term
 		}
-		DPrintf(" %d got AE RPC from %d with PrevLogIndex %d and PrevLogTerm %d", rf.me, args.LeaderId, args.PrevLogIndex, args.PrevLogTerm)
-		DPrintf(" %d reply AE RPC with prevIndex %d, prevTerm %d", rf.me, reply.PrevIndex, reply.PrevTerm)
+		// DPrintf(" %d got AE RPC from %d with PrevLogIndex %d and PrevLogTerm %d", rf.me, args.LeaderId, args.PrevLogIndex, args.PrevLogTerm)
+		// DPrintf(" %d reply AE RPC with prevIndex %d, prevTerm %d", rf.me, reply.PrevIndex, reply.PrevTerm)
 		reply.Success = false
 	} else {
 		go rf.receiveHeartbeat(args.LeaderId) // reset election timer
@@ -332,15 +332,15 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 			rf.log = append(rf.log, args.Entries[i])
 			j++
 		}
-		if len(args.Entries) == 0 { // heartbeat
-			DPrintf(" %d finish heartbeat", rf.me)
-		} else { // AppendEntries
-			DPrintf(" %d finish append log entry %d", rf.me, j - 1)
-		}
+		// if len(args.Entries) == 0 { // heartbeat
+		// 	DPrintf(" %d finish heartbeat", rf.me)
+		// } else { // AppendEntries
+		// 	DPrintf(" %d finish append log entry %d", rf.me, j - 1)
+		// }
 
 		if args.LeaderCommit > rf.commitIndex {
 			rf.commitIndex = int(math.Min(float64(args.LeaderCommit), float64(j - 1)))
-			DPrintf(" %d commit index update to %d, log len is %d", rf.me, rf.commitIndex, len(rf.log))
+			// DPrintf(" %d commit index update to %d, log len is %d", rf.me, rf.commitIndex, len(rf.log))
 		}
 	}
 
@@ -375,8 +375,8 @@ func (rf *Raft) sendAppendEntries(server int, term int, len int) bool {
 	for i := rf.nextIndex[server]; i < len; i++ {
 		args.Entries = append(args.Entries, rf.log[i])
 	}
-	DPrintf(" %d send AE RPC to %d", rf.me, server)
-	DPrintf(" term %d, prevLogIndex %d, PrevLogTerm %d, LeaderCommit %d", args.Term, args.PrevLogIndex, args.PrevLogTerm, args.LeaderCommit)
+	// DPrintf(" %d send AE RPC to %d", rf.me, server)
+	// DPrintf(" term %d, prevLogIndex %d, PrevLogTerm %d, LeaderCommit %d", args.Term, args.PrevLogIndex, args.PrevLogTerm, args.LeaderCommit)
 	rf.mu.Unlock()
 
 	reply := AppendEntriesReply{}
@@ -390,7 +390,7 @@ func (rf *Raft) sendAppendEntries(server int, term int, len int) bool {
 
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
-	DPrintf(" %d reply with %v on term %d for AE RPC from %d", server, reply.Success, reply.Term, rf.me)
+	// DPrintf(" %d reply with %v on term %d for AE RPC from %d", server, reply.Success, reply.Term, rf.me)
 	if rf.state != Leader {
 		return false
 	}
@@ -398,11 +398,11 @@ func (rf *Raft) sendAppendEntries(server int, term int, len int) bool {
 	if reply.Success {
 		rf.nextIndex[server] = len
 		rf.matchIndex[server] = len - 1
-		DPrintf(" %d match %d index to %d", rf.me, server, rf.matchIndex[server])
+		// DPrintf(" %d match %d index to %d", rf.me, server, rf.matchIndex[server])
 		// rf.mu.Unlock()
 		return true
 	} else if reply.Term > rf.currentTerm {
-		DPrintf(" %d got reply from %d with term %d, convert to follower", rf.me, server, reply.Term)
+		// DPrintf(" %d got reply from %d with term %d, convert to follower", rf.me, server, reply.Term)
 		rf.currentTerm = reply.Term
 		rf.state = Follower
 
@@ -419,7 +419,7 @@ func (rf *Raft) sendAppendEntries(server int, term int, len int) bool {
 		} else {
 			rf.nextIndex[server] = 1
 		}
-		DPrintf(" %d reduce %d nextIndex to %d", rf.me, server, rf.nextIndex[server])
+		// DPrintf(" %d reduce %d nextIndex to %d", rf.me, server, rf.nextIndex[server])
 		return false
 	}
 
@@ -451,7 +451,7 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 	rf.mu.Unlock()
 
 	if isLeader {
-		DPrintf(" %d start send command %v on term %d", rf.me, command, rf.currentTerm)
+		// DPrintf(" %d start send command %v on term %d", rf.me, command, rf.currentTerm)
 		rf.mu.Lock()
 		index = len(rf.log)
 		term = rf.currentTerm
@@ -578,7 +578,7 @@ func (rf *Raft) electionTimer() bool {
 				time.Sleep(time.Millisecond)
 				i++
 				if i == t {
-					DPrintf(" %d start election on term %d after timer %d", rf.me, rf.currentTerm + 1, t)
+					// DPrintf(" %d start election on term %d after timer %d", rf.me, rf.currentTerm + 1, t)
 					return true
 				}
 			}
@@ -617,14 +617,14 @@ func (rf *Raft) election() bool {
 	rf.persist()
 
 	cond := sync.NewCond(&rf.mu)
-	id := rand.Int() % 10000 + 100000
+	// id := rand.Int() % 10000 + 100000
 	for i := range rf.peers {
 		if i == rf.me {
 			continue
 		}
 		go func(server int, args *RequestVoteArgs) {
 			reply := RequestVoteReply{}
-			DPrintf(" %d send out request vote RPC of id %d to %d for term %d", rf.me, id, server, args.Term)
+			// DPrintf(" %d send out request vote RPC of id %d to %d for term %d", rf.me, id, server, args.Term)
 			ok := rf.sendRequestVote(server, args, &reply)
 			rf.mu.Lock()
 			if ok {
@@ -634,7 +634,7 @@ func (rf *Raft) election() bool {
 					rf.persist()
 					rf.mu.Lock()
 				}
-				DPrintf(" %d receive vote of id %d from %d of %v ", rf.me, id, server, reply.VoteGranted)
+				// DPrintf(" %d receive vote of id %d from %d of %v ", rf.me, id, server, reply.VoteGranted)
 				if rf.state == Candidate && reply.VoteGranted {
 					rf.vote++
 				}
@@ -669,11 +669,11 @@ func (rf *Raft) election() bool {
 		}
 	}(waitonRequestVoteReplyChan, loseElectionChan)
 	
-	DPrintf(" %d start waiting on election result on term %d", rf.me, currentTerm)
+	// DPrintf(" %d start waiting on election result on term %d", rf.me, currentTerm)
 	for {
 		select {
 		case <-waitonRequestVoteReplyChan:
-			DPrintf(" %d is Leader now on term %d", rf.me, currentTerm)
+			// DPrintf(" %d is Leader now on term %d", rf.me, currentTerm)
 			rf.mu.Lock()
 			// defer rf.mu.Unlock()
 
@@ -685,7 +685,7 @@ func (rf *Raft) election() bool {
 			for i := 0; i < len(rf.peers); i++ {
 				rf.nextIndex[i] = len(rf.log);
 				rf.matchIndex[i] = 0;
-				DPrintf(" leader %d update follower %d nextIndex to %d", rf.me, i, rf.nextIndex[i])
+				// DPrintf(" leader %d update follower %d nextIndex to %d", rf.me, i, rf.nextIndex[i])
 			}
 			rf.mu.Unlock()
 
@@ -693,7 +693,7 @@ func (rf *Raft) election() bool {
 			return true
 			// leader
 		case <-loseElectionChan:
-			DPrintf(" %d didn't get majority vote for term %d", rf.me, currentTerm)
+			// DPrintf(" %d didn't get majority vote for term %d", rf.me, currentTerm)
 			rf.mu.Lock()
 
 			rf.state = Follower
@@ -705,7 +705,7 @@ func (rf *Raft) election() bool {
 			rf.persist()
 			return false
 		case <-rf.electionLoseChan: //receive AE
-			DPrintf(" %d receive heartbeat signal, lost election for term %d", rf.me, currentTerm)
+			// DPrintf(" %d receive heartbeat signal, lost election for term %d", rf.me, currentTerm)
 			rf.mu.Lock()
 			// defer rf.mu.Unlock()
 
@@ -718,7 +718,7 @@ func (rf *Raft) election() bool {
 			rf.persist()
 			return false
 		case <-electionTimeoutChan: //timeout
-			DPrintf(" %d didn't get enough vote int time for term %d, back to Follower", rf.me, currentTerm)
+			// DPrintf(" %d didn't get enough vote int time for term %d, back to Follower", rf.me, currentTerm)
 			rf.mu.Lock()
 			// defer rf.mu.Unlock()
 
@@ -760,7 +760,7 @@ func (rf *Raft) AEProcess() {
 		// DPrintf("%d start AE process on term %d", rf.me, rf.currentTerm)
 		next := len(rf.log)
 		term := rf.currentTerm
-		DPrintf(" %d in AEProcess %d on term %d", rf.me, next, rf.currentTerm)
+		// DPrintf(" %d in AEProcess %d on term %d", rf.me, next, rf.currentTerm)
 		for i := 0; i < len(rf.peers); i++ {
 			if i == rf.me {
 				continue
@@ -792,7 +792,7 @@ func (rf *Raft) updateCommitIndex() {
 
 		start = rf.commitIndex + 1
 		end = len(rf.log) - 1
-		DPrintf(" %d updateCommitIndex, start %d, end %d", rf.me, start, end)
+		// DPrintf(" %d updateCommitIndex, start %d, end %d", rf.me, start, end)
 		var mid int
 		var cnt int
 		for start <= end {
@@ -813,7 +813,7 @@ func (rf *Raft) updateCommitIndex() {
 		// DPrintf("%d finish updateCommitIndex, start %d, end %d", rf.me, start, end)
 		if end > rf.commitIndex && rf.log[end].Term == rf.currentTerm {
 			rf.commitIndex = end
-			DPrintf(" %d update commitIndex to %d", rf.me, end)
+			// DPrintf(" %d update commitIndex to %d", rf.me, end)
 		}
 		rf.mu.Unlock()
 
@@ -851,7 +851,7 @@ func (rf *Raft) sendApplyMsg(index int) {
 		Command: rf.log[index].Command,
 		CommandIndex: index,
 	}
-	DPrintf(" %d send apply msg %v of %d to applyCh", rf.me, index, msg.Command)
+	// DPrintf(" %d send apply msg %v of %d to applyCh", rf.me, index, msg.Command)
 	rf.mu.Unlock()
 
 	rf.applyCh <- msg
